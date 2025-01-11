@@ -1,134 +1,252 @@
 <template>
-    <div class="login-container">
-      <h2>Giriş Yap</h2>
-      <form @submit.prevent="handleSubmit">
-        <div class="form-group">
-          <label for="email">E-posta</label>
-          <input
-            type="email"
-            id="email"
-            v-model="email"
-            required
-            placeholder="E-posta adresinizi girin"
-          />
-        </div>
-  
-        <div class="form-group">
-          <label for="password">Şifre</label>
-          <input
-            type="password"
-            id="password"
-            v-model="password"
-            required
-            placeholder="Şifrenizi girin"
-          />
-        </div>
-  
-        <div class="form-group">
-          <button type="submit" class="login-btn">Giriş Yap</button>
-        </div>
+  <div class="modal-overlay">
+    <div class="modal">
+      <button class="close-button" @click="$emit('close')">×</button>
+      <h2 class="modal-title">{{ isLogin ? "Giriş Yap" : "Kayıt Ol" }}</h2>
+      <p class="modal-subtitle">Tüm verileriniz şifrelenerek korunur</p>
+
+      <form @submit.prevent="isLogin ? login() : register()">
+        <label for="email" class="form-label">E-posta</label>
+        <input
+          type="email"
+          id="email"
+          v-model="email"
+          placeholder="E-posta adresinizi girin"
+          class="form-input"
+          required
+        />
+        <div v-if="emailError" class="error-message">{{ emailError }}</div>
+
+        <label for="password" class="form-label">Şifre</label>
+        <input
+          type="password"
+          id="password"
+          v-model="password"
+          placeholder="Şifrenizi girin"
+          class="form-input"
+          required
+        />
+        <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
+
+        <button type="submit" class="form-button">
+          {{ isLogin ? "Devam Et" : "Kayıt Ol" }}
+        </button>
       </form>
-      <p v-if="error" class="error-message">{{ error }}</p>
+
+      <p class="switch-mode">
+        {{ isLogin ? "Üye değil misiniz? " : "Hesabınız var mı? " }}
+        <a href="#" @click="toggleMode">{{ isLogin ? "Kayıt Ol" : "Giriş Yap" }}</a>
+      </p>
+
+      <p class="terms">
+        Devam ederek <a href="#">Kullanım Şartları</a> ve <a href="#">Gizlilik Politikası</a>'nı kabul etmiş olursunuz.
+      </p>
     </div>
-  </template>
-  
-  <script lang="ts">
-  import { defineComponent, ref } from "vue";
-  
-  export default defineComponent({
-    name: "LoginComponent",
-    setup() {
-      const email = ref("");
-      const password = ref("");
-      const error = ref<string | null>(null);
-  
-      const handleSubmit = () => {
-        // Basit form doğrulaması
-        if (!email.value || !password.value) {
-          error.value = "E-posta ve şifre gereklidir!";
-          return;
-        }
-  
-        // Burada API'ye istek gönderebiliriz
-        console.log("Giriş Yapılıyor...", email.value, password.value);
-  
-        // Başarılı giriş simülasyonu
-        setTimeout(() => {
-          error.value = null;
-          alert("Giriş başarılı!");
-        }, 1000);
-      };
-  
-      return {
-        email,
-        password,
-        error,
-        handleSubmit,
-      };
+  </div>
+</template>
+
+<script>
+import { initializeApp } from "firebase/app";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { useAuthStore } from "@/stores/auth"; // authStore'u dahil ediyoruz
+
+// Firebase konfigürasyonu
+const firebaseConfig = {
+  apiKey: "AIzaSyDXHqhoZMWCDE9Sid1HPlaA3uAweywuQ2w",
+  authDomain: "webprog2025.firebaseapp.com",
+  projectId: "webprog2025",
+  storageBucket: "webprog2025.firebasestorage.app",
+  messagingSenderId: "56330018416",
+  appId: "1:56330018416:web:b74bb5c9c489787cd2deb5",
+  measurementId: "G-Q2P22LJG41",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+export default {
+  data() {
+    return {
+      email: "",
+      password: "",
+      isLogin: true, // Giriş ve kayıt arasında geçiş için kontrol
+      emailError: "",
+      passwordError: "",
+    };
+  },
+  methods: {
+    async login() {
+      if (!this.validateInputs()) return;
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          this.email,
+          this.password
+        );
+        const authStore = useAuthStore(); // Pinia store'u kullan
+        authStore.setUserEmail(userCredential.user.email); // Kullanıcı email'ini sakla
+        console.log("Giriş Başarılı:", userCredential.user.email);
+        alert(`Hoş geldiniz, ${userCredential.user.email}`);
+        this.$emit("close"); // Modalı kapat
+      } catch (error) {
+        console.error("Giriş Hatası:", error.message);
+        this.passwordError = "Geçersiz email veya şifre!";
+      }
     },
-  });
-  </script>
-  
-  <style scoped>
-  .login-container {
-    width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  h2 {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  
-  .form-group {
-    margin-bottom: 20px;
-  }
-  
-  label {
-    display: block;
-    font-size: 14px;
-    margin-bottom: 8px;
-    color: #333;
-  }
-  
-  input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 16px;
-  }
-  
-  input:focus {
-    outline: none;
-    border-color: #007bff;
-  }
-  
-  button {
-    width: 100%;
-    padding: 12px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-  }
-  
-  button:hover {
-    background-color: #0056b3;
-  }
-  
-  .error-message {
-    color: red;
-    font-size: 14px;
-    text-align: center;
-    margin-top: 15px;
-  }
-  </style>
-  
+    async register() {
+      if (!this.validateInputs()) return;
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          this.email,
+          this.password
+        );
+        console.log("Kayıt Başarılı:", userCredential.user.email);
+        alert("Kayıt başarılı! Şimdi giriş yapabilirsiniz.");
+        this.toggleMode(); // Kayıttan sonra giriş moduna geçiş
+      } catch (error) {
+        console.error("Kayıt Hatası:", error.message);
+        this.emailError = "Bu email adresi zaten kullanımda!";
+      }
+    },
+    validateInputs() {
+      if (!this.email) {
+        this.emailError = "Email alanı boş olamaz!";
+        return false;
+      }
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(this.email)) {
+        this.emailError = "Geçerli bir email adresi giriniz";
+        return false;
+      }
+      this.emailError = "";
+
+      if (!this.password) {
+        this.passwordError = "Şifre alanı boş olamaz!";
+        return false;
+      }
+      this.passwordError = "";
+      return true;
+    },
+    toggleMode() {
+      this.isLogin = !this.isLogin;
+      this.emailError = "";
+      this.passwordError = "";
+    },
+  },
+};
+</script>
+
+<style scoped>
+/* Tüm CSS aynı kalabilir */
+</style>
+
+
+<style scoped>
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Modal content */
+.modal {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 400px;
+  width: 100%;
+  position: relative;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Close button */
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+/* Modal title and subtitle */
+.modal-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.modal-subtitle {
+  font-size: 14px;
+  color: green;
+  margin-bottom: 20px;
+}
+
+/* Form */
+.form-label {
+  display: block;
+  text-align: left;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.form-input {
+  width: 90%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.form-button {
+  width: 90%;
+  padding: 10px;
+  background: orange;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.form-button:hover {
+  background: darkorange;
+}
+
+/* Switch mode link */
+.switch-mode {
+  margin: 15px 0;
+  font-size: 14px;
+}
+
+.switch-mode a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.switch-mode a:hover {
+  text-decoration: underline;
+}
+
+/* Error message */
+.error-message {
+  color: red;
+  font-size: 12px;
+  margin-top: -10px;
+  margin-bottom: 10px;
+}
+</style>

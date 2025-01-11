@@ -2,26 +2,30 @@
   <div class="basket-container">
     <h2>Sepetim</h2>
 
+    <!-- Giriş Yapan Kullanıcı Bilgisi -->
+    <p v-if="userEmail" class="user-info">Merhaba, {{ userEmail }}</p>
+    <p v-else class="user-info">Giriş yapmadınız. Lütfen <NuxtLink to="/login">Giriş Yapın</NuxtLink>.</p>
+
     <!-- Ürünler Listesi -->
     <div v-if="cartItems.length > 0" class="basket-items">
-      <div
-        v-for="(item, index) in cartItems"
-        :key="item.id"
-        class="basket-item"
-      >
-        <img :src="item.imageUrl" :alt="item.name" class="product-image" />
+      <div v-for="item in cartItems" :key="item.id" class="basket-item">
+        <!-- Sol kısım: Ürün görseli -->
+        <img :src="item.image" :alt="item.name" class="product-image" />
 
+        <!-- Orta kısım: Ürün bilgileri -->
         <div class="product-details">
-          <h3>{{ item.name }}</h3>
-          <p>{{ formattedPrice(item.price) }}</p>
+          <h3 class="product-name">{{ item.name }}</h3>
+          <p class="product-price">{{ formattedPrice(item.price) }}</p>
           <div class="quantity-controls">
-            <button @click="decreaseQuantity(index)">-</button>
-            <span>{{ item.quantity }}</span>
-            <button @click="increaseQuantity(index)">+</button>
+            <label>Miktar</label>
+            <select v-model="item.quantity" @change="updateCart">
+              <option v-for="n in 10" :key="n" :value="n">{{ n }}</option>
+            </select>
           </div>
         </div>
 
-        <button class="remove-item" @click="removeItem(index)">Kaldır</button>
+        <!-- Sağ kısım: Ürün kaldır -->
+        <button class="remove-item" @click="removeItem(item.id)">🗑️</button>
       </div>
     </div>
 
@@ -34,75 +38,85 @@
     <!-- Toplam Fiyat -->
     <div v-if="cartItems.length > 0" class="basket-summary">
       <p>Toplam: <strong>{{ formattedPrice(totalPrice) }}</strong></p>
-      <button class="checkout-button" @click="checkout">Satın Al</button>
+      <button class="checkout-button" @click="checkout">Ödemeye Geç</button>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, computed } from "vue";
+import { defineComponent, ref, computed, onMounted } from "vue";
+import { useAuthStore } from "@/stores/auth";
+import { doc, getDoc, updateDoc, getFirestore } from "firebase/firestore";
 
 export default defineComponent({
   name: "BasketComponents",
   setup() {
-    // Sepet öğelerini tanımlıyoruz
-    const cartItems = reactive([
-      {
-        id: 1,
-        name: "Zeytinyağı",
-        price: 100,
-        quantity: 2,
-        imageUrl: "https://via.placeholder.com/150",
-      },
-      {
-        id: 2,
-        name: "Yeşil Zeytin",
-        price: 50,
-        quantity: 1,
-        imageUrl: "https://via.placeholder.com/150",
-      },
-    ]);
+    const authStore = useAuthStore();
+    const userEmail = computed(() => authStore.userEmail);
+    const cartItems = ref<any[]>([]);
 
-    // Toplam fiyat hesaplama
-    const totalPrice = computed(() => {
-      return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-    });
+    const totalPrice = computed(() =>
+      cartItems.value.reduce((total, item) => total + item.price * item.quantity, 0)
+    );
 
-    // Fiyat formatlama
     const formattedPrice = (price: number) =>
       new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(price);
 
-    // Miktar azaltma
-    const decreaseQuantity = (index: number) => {
-      if (cartItems[index].quantity > 1) {
-        cartItems[index].quantity--;
+    const db = getFirestore();
+
+    const fetchCart = async () => {
+      if (!userEmail.value) return;
+
+      try {
+        const docRef = doc(db, "baskets", userEmail.value);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          cartItems.value = docSnap.data()?.basket || [];
+        }
+      } catch (error) {
+        console.error("Sepet alınırken hata:", error);
       }
     };
 
-    // Miktar artırma
-    const increaseQuantity = (index: number) => {
-      cartItems[index].quantity++;
+    const updateCart = async () => {
+      if (!userEmail.value) return;
+
+      try {
+        const docRef = doc(db, "baskets", userEmail.value);
+        await updateDoc(docRef, { basket: cartItems.value });
+      } catch (error) {
+        console.error("Sepet güncellenirken hata:", error);
+      }
     };
 
-    // Ürün kaldırma
-    const removeItem = (index: number) => {
-      cartItems.splice(index, 1);
+    const removeItem = (id: string) => {
+      cartItems.value = cartItems.value.filter((i) => i.id !== id);
+      updateCart();
     };
 
-    // Ödeme işlemi
     const checkout = () => {
-      alert("Satın alma işlemi başarıyla tamamlandı!");
-      cartItems.splice(0, cartItems.length); // Sepeti boşalt
+      if (!userEmail.value) {
+        alert("Satın alma işlemi için giriş yapmanız gerekiyor!");
+        return;
+      }
+      alert(`Satın alma işlemi başarıyla tamamlandı! Toplam Tutar: ${formattedPrice(totalPrice.value)}`);
+      cartItems.value = [];
+      updateCart();
     };
+
+    onMounted(() => {
+      fetchCart();
+    });
 
     return {
+      userEmail,
       cartItems,
       totalPrice,
       formattedPrice,
-      decreaseQuantity,
-      increaseQuantity,
       removeItem,
       checkout,
+      updateCart,
     };
   },
 });
@@ -110,12 +124,10 @@ export default defineComponent({
 
 <style scoped>
 .basket-container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 h2 {
@@ -123,27 +135,45 @@ h2 {
   margin-bottom: 20px;
 }
 
-.basket-items {
+.user-info {
+  text-align: center;
+  font-size: 16px;
   margin-bottom: 20px;
+}
+
+.basket-items {
+  border-top: 2px solid #ddd;
+  margin-top: 20px;
 }
 
 .basket-item {
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
+  justify-content: space-between;
   border-bottom: 1px solid #ddd;
-  padding-bottom: 10px;
+  padding: 15px 0;
 }
 
 .product-image {
   width: 80px;
   height: 80px;
-  margin-right: 15px;
-  border-radius: 8px;
+  object-fit: cover;
 }
 
 .product-details {
   flex: 1;
+  margin-left: 20px;
+}
+
+.product-name {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.product-price {
+  color: #28a745;
+  font-weight: bold;
+  margin: 5px 0;
 }
 
 .quantity-controls {
@@ -152,59 +182,40 @@ h2 {
   gap: 10px;
 }
 
-.quantity-controls button {
-  padding: 5px 10px;
-  background: #007bff;
-  color: white;
-  border: none;
+.quantity-controls select {
+  padding: 5px;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  cursor: pointer;
-}
-
-.quantity-controls button:hover {
-  background: #0056b3;
 }
 
 .remove-item {
-  background: #ff4d4d;
-  color: white;
+  background: none;
   border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
   cursor: pointer;
+  font-size: 18px;
+  color: #ff4d4d;
 }
 
 .remove-item:hover {
-  background: #e63939;
-}
-
-.empty-basket {
-  text-align: center;
-}
-
-.continue-shopping {
-  color: #007bff;
-  text-decoration: none;
-}
-
-.continue-shopping:hover {
-  text-decoration: underline;
+  color: #e63939;
 }
 
 .basket-summary {
   text-align: right;
+  margin-top: 20px;
 }
 
 .checkout-button {
-  background: #28a745;
+  background: orange;
   color: white;
   border: none;
   padding: 10px 20px;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 16px;
 }
 
 .checkout-button:hover {
-  background: #218838;
+  background: rgb(134, 99, 33);
 }
 </style>

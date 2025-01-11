@@ -1,65 +1,67 @@
 <template>
   <div class="grid-product-list">
-    <div class="product-item" 
-         v-for="product in products" 
-         :key="product.id">
+    <!-- Ürünler Yüklenirken -->
+    <p v-if="loading" class="loading">Ürünler yükleniyor...</p>
+
+    <!-- Hata Durumu -->
+    <p v-if="error" class="error">{{ error }}</p>
+
+    <!-- Ürün Yoksa -->
+    <p v-if="!products.length && !loading && !error" class="no-products">
+      Şu anda gösterilecek ürün yok.
+    </p>
+
+    <!-- Ürünler Varsa -->
+    <div v-else class="product-item" v-for="product in products" :key="product.id">
       <ProductCard :product="product" />
     </div>
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
-import ProductCard from "~/components/ProductCard.vue"; // ProductCard component'ini import ediyoruz.
+<script>
+import { useProductStore } from "@/stores/productStore"; // productStore'u import ediyoruz
+import { onMounted, computed } from "vue";
+import ProductCard from "~/components/ProductCard.vue";
 
-export default defineComponent({
-  name: "GridProductList",
-  props: {
-    products: {
-      type: Array,
-      required: true,
-    },
+export default {
+  components: { ProductCard },
+  setup() {
+    const productStore = useProductStore(); // Pinia store'u kullanıyoruz
+
+    // Store'daki state'leri bağla
+    const products = computed(() => productStore.products);
+    const loading = computed(() => productStore.loading);
+    const error = computed(() => productStore.error);
+
+    // onMounted içinde ürünleri çek
+    onMounted(async () => {
+      await productStore.fetchProducts(); // Firestore'dan ürünleri çek
+      console.log("Ürünler:", productStore.products); // Konsola ürünleri yazdır
+    });
+
+    return {
+      products,
+      loading,
+      error,
+    };
   },
-  components: {
-    ProductCard,
-  },
-});
+};
 </script>
 
 <style scoped>
 .grid-product-list {
   display: grid;
-  grid-template-columns: repeat(5, 1fr); /* 5 ürün bir satırda */
-  gap: 20px; /* Ürünler arasındaki boşluk */
-  margin: 20px 0;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
 }
 
-.product-item {
-  display: flex;
-  justify-content: center; /* Ürünleri ortalamak için */
-}
-
-@media (max-width: 1200px) {
-  .grid-product-list {
-    grid-template-columns: repeat(4, 1fr); /* Daha küçük ekranlarda 4 ürün */
-  }
-}
-
-@media (max-width: 992px) {
-  .grid-product-list {
-    grid-template-columns: repeat(3, 1fr); /* Tablet ve daha küçük ekranlarda 3 ürün */
-  }
-}
-
-@media (max-width: 768px) {
-  .grid-product-list {
-    grid-template-columns: repeat(2, 1fr); /* Mobilde 2 ürün */
-  }
-}
-
-@media (max-width: 480px) {
-  .grid-product-list {
-    grid-template-columns: 1fr; /* Küçük ekranlarda 1 ürün */
-  }
+.loading,
+.no-products,
+.error {
+  text-align: center;
+  font-size: 18px;
+  color: #555;
+  margin-top: 20px;
 }
 </style>

@@ -3,43 +3,95 @@
     <div class="container">
       <!-- Logo -->
       <div class="logo">
-        <NuxtLink to="/">TemuClone</NuxtLink>
+        <NuxtLink to="/">
+          <img src="~/assets/image.png" alt="TEMU Logo" class="logo-image" />
+        </NuxtLink>
       </div>
 
       <!-- Kategoriler -->
       <CategoriesDropdown />
 
-      <!-- Search Bar -->
-      <div class="search-bar">
-        <input type="text" placeholder="Ürün, kategori veya marka ara" />
-        <button type="button">Ara</button>
+      <!-- Arama Çubuğu ve Oturum Aç/Kullanıcı Bilgisi -->
+      <div class="search-and-auth">
+        <div class="search-bar">
+          <input type="text" placeholder="Ürün, kategori veya marka ara" />
+          <button type="button">Ara</button>
+        </div>
+        <!-- Kullanıcı Bilgisi veya Oturum Aç -->
+        <div v-if="userEmail" class="user-info">
+          <span @click="toggleUserMenu" class="user-greeting">Merhaba, {{ userEmail }}</span>
+          <div v-if="showUserMenu" class="user-menu">
+            <button @click="goToCart">Sepete Git</button>
+            <button @click="logout">Çıkış Yap</button>
+          </div>
+        </div>
+        <button v-else class="action-item" @click="toggleLoginModal">Oturum Aç/Kaydol</button>
       </div>
 
-      <!-- Actions -->
+      <!-- Diğer Eylemler -->
       <div class="actions">
-        <NuxtLink to="/favorites" class="action-item">Favoriler</NuxtLink>
+        <NuxtLink to="/" class="action-item">Destek</NuxtLink>
         <NuxtLink to="/basket" class="action-item">Sepet</NuxtLink>
-        <NuxtLink to="/login" class="action-item">Giriş Yap</NuxtLink>
       </div>
     </div>
+
+    <!-- Giriş Modalı -->
+    <LoginComponents
+      v-if="showLoginModal"
+      @close="toggleLoginModal"
+    />
   </header>
 </template>
 
 <script>
-import CategoriesDropdown from "~/components/CategoriesDropDown.vue";  // Import the CategoriesDropdown component
+import { defineComponent, computed } from "vue";
+import { useAuthStore } from "@/stores/auth";
+import CategoriesDropdown from "~/components/CategoriesDropDown.vue";
+import LoginComponents from "~/components/LoginComponents.vue";
 
-export default {
+export default defineComponent({
   name: "Header",
   components: {
-    CategoriesDropdown, // Register the component
+    CategoriesDropdown,
+    LoginComponents,
   },
-};
+  data() {
+    return {
+      showLoginModal: false, // Modal görünürlüğü kontrolü
+      showUserMenu: false, // Kullanıcı menüsü görünürlüğü kontrolü
+    };
+  },
+  computed: {
+    userEmail() {
+      const authStore = useAuthStore();
+      return authStore.userEmail; // authStore'dan e-posta bilgisini al
+    },
+  },
+  methods: {
+    toggleLoginModal() {
+      this.showLoginModal = !this.showLoginModal;
+    },
+    toggleUserMenu() {
+      this.showUserMenu = !this.showUserMenu;
+    },
+    goToCart() {
+      this.$router.push("/basket"); // Sepete yönlendirme
+      this.showUserMenu = false; // Menü kapanır
+    },
+    logout() {
+      const authStore = useAuthStore();
+      authStore.clearUser(); // Kullanıcı oturumunu temizle
+      this.showUserMenu = false; // Menü kapanır
+      alert("Çıkış yapıldı.");
+    },
+  },
+});
 </script>
 
 <style scoped>
 /* Header genel stili */
 .header {
-  background-color: #f8f9fa;
+  background-color: #eaf4fb;
   padding: 10px 20px;
   border-bottom: 1px solid #ddd;
 }
@@ -53,24 +105,31 @@ export default {
 }
 
 /* Logo */
-.logo a {
-  font-size: 20px;
-  font-weight: bold;
-  color: #333;
-  text-decoration: none;
+.logo {
+  display: flex;
+  align-items: center;
 }
 
-.logo a:hover {
-  color: #007bff;
+.logo-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
 }
 
-/* Arama çubuğu */
-.search-bar {
-  flex: 1;
-  margin: 0 20px;
+/* Arama Çubuğu ve Kullanıcı Bilgisi */
+.search-and-auth {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1;
+  margin: 0 20px;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  flex: 1;
 }
 
 .search-bar input {
@@ -93,6 +152,44 @@ export default {
   background-color: #0056b3;
 }
 
+/* Kullanıcı Bilgisi */
+.user-info {
+  position: relative;
+}
+
+.user-greeting {
+  font-size: 14px;
+  color: #007bff;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.user-menu {
+  position: absolute;
+  top: 20px;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-menu button {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
+.user-menu button:hover {
+  background: #f0f0f0;
+}
+
 /* Kullanıcı eylemleri */
 .actions {
   display: flex;
@@ -104,9 +201,16 @@ export default {
   text-decoration: none;
   color: #333;
   font-size: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .action-item:hover {
+  background-color: #e9ecef;
   color: #007bff;
 }
 </style>

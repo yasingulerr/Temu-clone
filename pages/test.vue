@@ -9,11 +9,9 @@
       >
         Component {{ index + 1 }}
       </button>
-      <button @click="showComponent(components.length)">ScrollProduct</button>
     </nav>
 
     <main class="main-content">
-      <!-- Dinamik component yapısı -->
       <component
         v-for="(comp, index) in components"
         :is="comp"
@@ -21,17 +19,6 @@
         v-show="activeComponentIndex === index"
         v-bind="getProps(comp)"
       />
-
-      <!-- ScrollProduct için özel yapı -->
-      <div v-show="activeComponentIndex === components.length">
-        <ScrollProduct>
-          <ProductCard
-            v-for="product in testProducts"
-            :key="product.id"
-            :product="product"
-          />
-        </ScrollProduct>
-      </div>
     </main>
   </div>
 </template>
@@ -39,6 +26,7 @@
 <script setup>
 import { ref } from "vue";
 
+// Nuxt'taki components klasöründeki bileşenleri import edin
 import BasketComponents from "@/components/BasketComponents.vue";
 import CategoriesDropDown from "@/components/CategoriesDropDown.vue";
 import FeedBack from "@/components/FeedBack.vue";
@@ -50,7 +38,7 @@ import LogoutComponents from "@/components/LogoutComponents.vue";
 import ProductCard from "@/components/ProductCard.vue";
 import ScrollProduct from "@/components/ScrollProduct.vue";
 
-// Test ürünleri
+// Test için örnek ürün verisi
 const testProducts = [
   { id: 1, name: "Zeytinyağı", price: 89.99, imageUrl: "https://via.placeholder.com/150" },
   { id: 2, name: "Yeşil Zeytin", price: 45.99, imageUrl: "https://via.placeholder.com/150" },
@@ -61,17 +49,20 @@ const testProducts = [
   { id: 7, name: "Mandalina Suyu", price: 99.99, imageUrl: "https://via.placeholder.com/150" }
 ];
 
-// `getProps` fonksiyonu
+// Tek bir ürün örneği
+const testProduct = testProducts[0];
+
+// Komponentlere özel `props` sağlama fonksiyonu
 const getProps = (component) => {
   if (component === ProductCard) {
-    return { product: testProducts[0] };
-  } else if (component === GridProductList) {
-    return { products: testProducts };
+    return { product: testProduct };
+  } else if (component === GridProductList || component === ScrollProduct) {
+    return { products: testProducts }; // Bu bileşenler için ürün listesi gönderiyoruz
   }
-  return {};
+  return {}; // Diğer komponentler props almıyorsa boş döndür
 };
 
-// Komponent listesi
+// Komponentleri bir listeye ekliyoruz
 const components = [
   BasketComponents,
   CategoriesDropDown,
@@ -81,19 +72,20 @@ const components = [
   Header,
   Footer,
   LoginComponents,
-  LogoutComponents
+  LogoutComponents,
+  ScrollProduct
 ];
 
-// Aktif component index
+// Aktif komponenti takip eden bir değişken
 const activeComponentIndex = ref(0);
 
-// Component gösterim fonksiyonu
+// Hangi komponentin aktif olacağını değiştiren fonksiyon
 const showComponent = (index) => {
   activeComponentIndex.value = index;
 };
 
-// Sidebar butonları
-const buttons = Array.from({ length: components.length }, (_, i) => `Component ${i + 1}`);
+// Sidebar'daki butonlar
+const buttons = Array.from({ length: 10 }, (_, i) => `Component ${i + 1}`);
 </script>
 
 <style scoped>
