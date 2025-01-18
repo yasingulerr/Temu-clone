@@ -1,21 +1,22 @@
-// Import the functions you need from the SDKs you need
+// Firebase SDK modüllerini içe aktar
 import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore"; // Firestore için modül
 import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Firebase konfigürasyonun
 const firebaseConfig = {
-  apiKey: "AIzaSyAIS9UCv2sucqIA8hCytG-WGnDzIrG8nHY",
-  authDomain: "my-nuxt-project-c8cbe.firebaseapp.com",
-  projectId: "my-nuxt-project-c8cbe",
-  storageBucket: "my-nuxt-project-c8cbe.firebasestorage.app",
-  messagingSenderId: "884264088481",
-  appId: "1:884264088481:web:d614d958348e6b95d7d1e0",
-  measurementId: "G-5CGRDCS20B"
+  apiKey: "AIzaSyDXHqhoZMWCDE9Sid1HPlaA3uAweywuQ2w",
+  authDomain: "webprog2025.firebaseapp.com",
+  projectId: "webprog2025",
+  storageBucket: "webprog2025.firebasestorage.app",
+  messagingSenderId: "56330018416",
+  appId: "1:56330018416:web:b74bb5c9c489787cd2deb5",
+  measurementId: "G-Q2P22LJG41",
 };
 
-// Initialize Firebase
+// Firebase uygulamasını başlat
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+
+// Firestore ve Analytics servislerini başlat
+export const db = getFirestore(app); // Firestore bağlantısı
+export const analytics = getAnalytics(app); // Analytics servisi (isteğe bağlı)
