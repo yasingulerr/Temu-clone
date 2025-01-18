@@ -8,7 +8,7 @@
     </div>
 
     <!-- Ürünler ve ScrollProduct Component'i -->
-    <ScrollProduct />
+    <ScrollProduct :products="products" :loading="loading" :error="error" />
 
     <!-- İkinci Banner: KISA ÖZEL SEÇİMLER -->
     <div class="special-banner">
@@ -19,7 +19,7 @@
     </div>
 
     <!-- GridProductList Component'i ekledik -->
-    <GridProductList />
+    <GridProductList :products="products" :loading="loading" :error="error" />
 
     <FeedBack />
     <Footer />
@@ -27,19 +27,53 @@
 </template>
 
 <script lang="ts">
+import { ref, onMounted } from "vue";
 import Header from "~/components/Header.vue";
 import Footer from "~/components/Footer.vue";
 import ScrollProduct from "~/components/ScrollProduct.vue";
 import FeedBack from "~/components/FeedBack.vue";
-import GridProductList from "~/components/GridProductList.vue"; // GridProductList component'ini import ediyoruz.
+import GridProductList from "~/components/GridProductList.vue";
+import { collection, getDocs, getFirestore } from "firebase/firestore"; // Firestore işlemleri
 
 export default {
   components: {
     Header,
     Footer,
     ScrollProduct,
-    GridProductList, // GridProductList component'ini burada tanımlıyoruz
+    GridProductList,
     FeedBack,
+  },
+  setup() {
+    const products = ref([]);
+    const loading = ref(true);
+    const error = ref<string | null>(null);
+
+    // Firestore'dan ürünleri çek
+    const fetchProducts = async () => {
+      try {
+        const db = getFirestore();
+        const querySnapshot = await getDocs(collection(db, "products"));
+        products.value = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+      } catch (err) {
+        console.error("Ürünler alınırken hata oluştu:", err);
+        error.value = "Ürünler yüklenirken bir hata oluştu.";
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    onMounted(() => {
+      fetchProducts();
+    });
+
+    return {
+      products,
+      loading,
+      error,
+    };
   },
 };
 </script>

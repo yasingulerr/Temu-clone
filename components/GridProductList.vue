@@ -19,32 +19,15 @@
 </template>
 
 <script>
-import { useProductStore } from "@/stores/productStore"; // productStore'u import ediyoruz
-import { onMounted, computed } from "vue";
 import ProductCard from "~/components/ProductCard.vue";
 
 export default {
-  components: { ProductCard },
-  setup() {
-    const productStore = useProductStore(); // Pinia store'u kullanıyoruz
-
-    // Store'daki state'leri bağla
-    const products = computed(() => productStore.products);
-    const loading = computed(() => productStore.loading);
-    const error = computed(() => productStore.error);
-
-    // onMounted içinde ürünleri çek
-    onMounted(async () => {
-      await productStore.fetchProducts(); // Firestore'dan ürünleri çek
-      console.log("Ürünler:", productStore.products); // Konsola ürünleri yazdır
-    });
-
-    return {
-      products,
-      loading,
-      error,
-    };
+  props: {
+    products: { type: Array, required: true },
+    loading: { type: Boolean, required: true },
+    error: { type: [String, null], required: false },
   },
+  components: { ProductCard },
 };
 </script>
 

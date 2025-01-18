@@ -18,14 +18,14 @@
           <p class="product-price">{{ formattedPrice(item.price) }}</p>
           <div class="quantity-controls">
             <label>Miktar</label>
-            <select v-model="item.quantity" @change="updateCart">
+            <select v-model="item.quantity" @change="$emit('update-cart', cartItems)">
               <option v-for="n in 10" :key="n" :value="n">{{ n }}</option>
             </select>
           </div>
         </div>
 
         <!-- Sağ kısım: Ürün kaldır -->
-        <button class="remove-item" @click="removeItem(item.id)">🗑️</button>
+        <button class="remove-item" @click="$emit('remove-item', item.id)">🗑️</button>
       </div>
     </div>
 
@@ -38,85 +38,35 @@
     <!-- Toplam Fiyat -->
     <div v-if="cartItems.length > 0" class="basket-summary">
       <p>Toplam: <strong>{{ formattedPrice(totalPrice) }}</strong></p>
-      <button class="checkout-button" @click="checkout">Ödemeye Geç</button>
+      <button class="checkout-button" @click="$emit('checkout')">Ödemeye Geç</button>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted } from "vue";
-import { useAuthStore } from "@/stores/auth";
-import { doc, getDoc, updateDoc, getFirestore } from "firebase/firestore";
+import { defineComponent } from "vue";
 
 export default defineComponent({
   name: "BasketComponents",
-  setup() {
-    const authStore = useAuthStore();
-    const userEmail = computed(() => authStore.userEmail);
-    const cartItems = ref<any[]>([]);
-
+  props: {
+    userEmail: { type: String as () => string | null, required: false },
+    cartItems: {
+      type: Array as () => Array<{ id: string; name: string; price: number; quantity: number; image: string }>,
+      required: true,
+    },
+  },
+  emits: ["update-cart", "remove-item", "checkout"],
+  setup(props) {
     const totalPrice = computed(() =>
-      cartItems.value.reduce((total, item) => total + item.price * item.quantity, 0)
+      props.cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
     );
 
     const formattedPrice = (price: number) =>
       new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(price);
 
-    const db = getFirestore();
-
-    const fetchCart = async () => {
-      if (!userEmail.value) return;
-
-      try {
-        const docRef = doc(db, "baskets", userEmail.value);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          cartItems.value = docSnap.data()?.basket || [];
-        }
-      } catch (error) {
-        console.error("Sepet alınırken hata:", error);
-      }
-    };
-
-    const updateCart = async () => {
-      if (!userEmail.value) return;
-
-      try {
-        const docRef = doc(db, "baskets", userEmail.value);
-        await updateDoc(docRef, { basket: cartItems.value });
-      } catch (error) {
-        console.error("Sepet güncellenirken hata:", error);
-      }
-    };
-
-    const removeItem = (id: string) => {
-      cartItems.value = cartItems.value.filter((i) => i.id !== id);
-      updateCart();
-    };
-
-    const checkout = () => {
-      if (!userEmail.value) {
-        alert("Satın alma işlemi için giriş yapmanız gerekiyor!");
-        return;
-      }
-      alert(`Satın alma işlemi başarıyla tamamlandı! Toplam Tutar: ${formattedPrice(totalPrice.value)}`);
-      cartItems.value = [];
-      updateCart();
-    };
-
-    onMounted(() => {
-      fetchCart();
-    });
-
     return {
-      userEmail,
-      cartItems,
       totalPrice,
       formattedPrice,
-      removeItem,
-      checkout,
-      updateCart,
     };
   },
 });

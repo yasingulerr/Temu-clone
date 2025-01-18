@@ -18,7 +18,7 @@
       <!-- Ürünler -->
       <ProductCard
         v-for="product in products"
-        :key="product"
+        :key="product.id"
         :product="product"
       />
     </div>
@@ -28,66 +28,39 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref, onMounted } from "vue";
+<script>
+import { ref } from "vue";
 import ProductCard from "~/components/ProductCard.vue";
-import { collection, getDocs, getFirestore } from "firebase/firestore"; // Firestore işlemleri
 
-export default defineComponent({
-  name: "ScrollableProductList",
+export default {
+  props: {
+    products: { type: Array, required: true },
+    loading: { type: Boolean, required: true },
+    error: { type: [String, null], required: false },
+  },
   components: { ProductCard },
   setup() {
-    const scrollContainer = ref<HTMLElement | null>(null);
-    const products = ref([]); // Ürün listesi
-    const loading = ref(true); // Yükleniyor durumu
-    const error = ref<string | null>(null); // Hata durumu
+    const scrollContainer = ref(null);
 
-    // Ürünleri Firebase'den çek
-    const fetchProducts = async () => {
-      try {
-        const db = getFirestore();
-        const querySnapshot = await getDocs(collection(db, "products")); // Firestore'daki "products" koleksiyonunu al
-        products.value = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-      } catch (err) {
-        console.error("Ürünler alınırken hata oluştu:", err);
-        error.value = "Ürünler yüklenirken bir hata oluştu.";
-      } finally {
-        loading.value = false; // Yükleniyor durumunu kapat
-      }
-    };
-
-    // Sağa kaydırma işlemi
     const scrollRight = () => {
       if (scrollContainer.value) {
-        scrollContainer.value.scrollLeft += 300; // 300px sağa kaydır
+        scrollContainer.value.scrollLeft += 300;
       }
     };
 
-    // Sola kaydırma işlemi
     const scrollLeft = () => {
       if (scrollContainer.value) {
-        scrollContainer.value.scrollLeft -= 300; // 300px sola kaydır
+        scrollContainer.value.scrollLeft -= 300;
       }
     };
-
-    // Bileşen yüklendiğinde ürünleri çek
-    onMounted(() => {
-      fetchProducts();
-    });
 
     return {
       scrollContainer,
       scrollLeft,
       scrollRight,
-      products,
-      loading,
-      error,
     };
   },
-});
+};
 </script>
 
 <style scoped>
