@@ -52,13 +52,13 @@ import { useAuthStore } from "@/stores/auth"; // authStore'u dahil ediyoruz
 
 // Firebase konfigürasyonu
 const firebaseConfig = {
-  apiKey: "AIzaSyDXHqhoZMWCDE9Sid1HPlaA3uAweywuQ2w",
-  authDomain: "webprog2025.firebaseapp.com",
-  projectId: "webprog2025",
-  storageBucket: "webprog2025.firebasestorage.app",
-  messagingSenderId: "56330018416",
-  appId: "1:56330018416:web:b74bb5c9c489787cd2deb5",
-  measurementId: "G-Q2P22LJG41",
+  apiKey: "AIzaSyAIS9UCv2sucqIA8hCytG-WGnDzIrG8nHY",
+  authDomain: "my-nuxt-project-c8cbe.firebaseapp.com",
+  projectId: "my-nuxt-project-c8cbe",
+  storageBucket: "my-nuxt-project-c8cbe.firebasestorage.app",
+  messagingSenderId: "884264088481",
+  appId: "1:884264088481:web:d614d958348e6b95d7d1e0",
+  measurementId: "G-5CGRDCS20B"
 };
 
 const app = initializeApp(firebaseConfig);
